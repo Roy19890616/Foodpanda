@@ -1,0 +1,241 @@
+from bs4 import BeautifulSoup
+import requests
+
+#Input should be the Taiwan address in Chinese
+addr = input()
+
+#Create a function "find_position" to get the latitude and longitude information from Google Map
+def find_position(addr):
+    targeturl ='https://www.google.com.tw/search?tbm=map&authuser=0&hl=zh-TW&gl=tw&q='+addr
+    headers = {
+        'User-Agent': '',
+        'cookie': '',  # This is another valid field
+        'upgrade-insecure-requests':'1',
+        'x-client-data':'',
+        'accept':''
+        }    
+    response = requests.get(targeturl,headers=headers)
+    soup = BeautifulSoup(response.text, "html.parser")
+    text = soup.prettify()
+    posi = {}
+    posi['latitude'] = text[text.find('@')+1:text.find('@')+30].split(',')[0]
+    posi['longitude'] = text[text.find('@')+1:text.find('@')+30].split(',')[1]
+    return posi
+
+posi = find_position(addr)
+
+#Create the function "freeone" to check "special meal" is in each list or not 
+#判斷list a中各個元素是否有包含'指定餐點'
+def freeone(a):
+    x = 0
+    for i in a:
+        if '指定餐點' in i['text']:
+            x = x + 1
+    if x == 0:
+        return 'False'
+    else:
+        return 'True'
+
+#Create the function "freeproduct" to get the discount list from the foodpanda website
+#從foodpanda找出折扣列表    
+def freeproduct(vendor_code):
+    url_fd = 'https://tw.fd-api.com/api/v5/vendors/'
+    url = url_fd + str(vendor_code)
+    query = {
+    'include': 'menus',
+    'language_id': '6',
+    'dynamic_pricing': '0',
+    'opening_type': 'delivery',
+    'longitude': posi['longitude'],  # 經度
+    'latitude': posi['latitude'],  # 緯度
+    }
+    
+    r = requests.get(url=url, params=query)
+    if r.status_code == requests.codes.ok: 
+        data_vendor = r.json()
+    
+    menu_categories = data_vendor['data']['menus'][0]['menu_categories']
+    product_list = []
+    for menu in menu_categories:
+        if '指定餐點' in menu['name']:
+            product_list = menu['products']
+    discount_dict = {}
+    for product in product_list:
+        discount_dict[product['name']] = [product['product_variations'][0]['price']]
+    return discount_dict
+    
+
+#Use request function, longitude and latitude as input to store the restaurent information as variable url
+#利用request 函數，經緯度作為輸入值，將對應的外送餐廳內容存為變數url
+
+import requests
+
+url = 'https://disco.deliveryhero.io/listing/api/v1/pandora/vendors'
+query = {
+    'longitude': posi['longitude'],  # 經度
+    'latitude': posi['latitude'],  # 緯度
+    'language_id': 6,
+    'include': 'characteristics',
+    'dynamic_pricing': 0,
+    'configuration': 'Variant1',
+    'country': 'tw',
+    'budgets': '',
+    'cuisine': '',
+    'sort': '',
+    'food_characteristic': '',
+    'use_free_delivery_label': False,
+    'vertical': 'restaurants',
+    'limit': 2000,
+    'offset': 0,
+    'customer_type': 'regular',
+    'has_discount': 1
+}
+headers = {
+    'x-disco-client-id': 'web',
+}
+r = requests.get(url=url, params=query, headers=headers)
+if r.status_code == requests.codes.ok:
+    data_restaurant = r.json()
+    restaurants = data_restaurant['data']['items']
+
+else:
+    print('請求失敗')    
+    
+discount_result = {}
+result_list = []
+result_text = ''
+
+#Build a for loop and use "freeone" function to determine whether the restaurent has "buy one get one free" or not.
+#If it has, then store and print it out as the result.
+#建立for迴圈，利用freeone函數判斷餐廳是否有買一送一餐點，有的話就儲存後印出
+for restaurant in restaurants:
+
+    if freeone(restaurant['tags']) == 'True':
+        if freeproduct(restaurant['code']) != {}:
+            result_list.append(restaurant['name'])
+            result_list.append(str(freeproduct(restaurant['code'])))
+            result_list.append(restaurant['web_path'])
+            
+result_text = '\n'.join(result_list)
+print(result_text)
+            from bs4 import BeautifulSoup
+import requests
+
+#Input should be the Taiwan address in Chinese
+addr = input()
+
+#Create a function "find_position" to get the latitude and longitude information from Google Map
+def find_position(addr):
+    targeturl ='https://www.google.com.tw/search?tbm=map&authuser=0&hl=zh-TW&gl=tw&q='+addr
+    headers = {
+        'User-Agent': '',
+        'cookie': '',  # This is another valid field
+        'upgrade-insecure-requests':'1',
+        'x-client-data':'',
+        'accept':''
+        }    
+    response = requests.get(targeturl,headers=headers)
+    soup = BeautifulSoup(response.text, "html.parser")
+    text = soup.prettify()
+    posi = {}
+    posi['latitude'] = text[text.find('@')+1:text.find('@')+30].split(',')[0]
+    posi['longitude'] = text[text.find('@')+1:text.find('@')+30].split(',')[1]
+    return posi
+
+posi = find_position(addr)
+
+#Create the function "freeone" to check "special meal" is in each list or not 
+#判斷list a中各個元素是否有包含'指定餐點'
+def freeone(a):
+    x = 0
+    for i in a:
+        if '指定餐點' in i['text']:
+            x = x + 1
+    if x == 0:
+        return 'False'
+    else:
+        return 'True'
+
+#Create the function "freeproduct" to get the discount list from the foodpanda website
+#從foodpanda找出折扣列表    
+def freeproduct(vendor_code):
+    url_fd = 'https://tw.fd-api.com/api/v5/vendors/'
+    url = url_fd + str(vendor_code)
+    query = {
+    'include': 'menus',
+    'language_id': '6',
+    'dynamic_pricing': '0',
+    'opening_type': 'delivery',
+    'longitude': posi['longitude'],  # 經度
+    'latitude': posi['latitude'],  # 緯度
+    }
+    
+    r = requests.get(url=url, params=query)
+    if r.status_code == requests.codes.ok: 
+        data_vendor = r.json()
+    
+    menu_categories = data_vendor['data']['menus'][0]['menu_categories']
+    product_list = []
+    for menu in menu_categories:
+        if '指定餐點' in menu['name']:
+            product_list = menu['products']
+    discount_dict = {}
+    for product in product_list:
+        discount_dict[product['name']] = [product['product_variations'][0]['price']]
+    return discount_dict
+    
+
+#Use request function, longitude and latitude as input to store the restaurent information as variable url
+#利用request 函數，經緯度作為輸入值，將對應的外送餐廳內容存為變數url
+
+import requests
+
+url = 'https://disco.deliveryhero.io/listing/api/v1/pandora/vendors'
+query = {
+    'longitude': posi['longitude'],  # 經度
+    'latitude': posi['latitude'],  # 緯度
+    'language_id': 6,
+    'include': 'characteristics',
+    'dynamic_pricing': 0,
+    'configuration': 'Variant1',
+    'country': 'tw',
+    'budgets': '',
+    'cuisine': '',
+    'sort': '',
+    'food_characteristic': '',
+    'use_free_delivery_label': False,
+    'vertical': 'restaurants',
+    'limit': 2000,
+    'offset': 0,
+    'customer_type': 'regular',
+    'has_discount': 1
+}
+headers = {
+    'x-disco-client-id': 'web',
+}
+r = requests.get(url=url, params=query, headers=headers)
+if r.status_code == requests.codes.ok:
+    data_restaurant = r.json()
+    restaurants = data_restaurant['data']['items']
+
+else:
+    print('請求失敗')    
+    
+discount_result = {}
+result_list = []
+result_text = ''
+
+#Build a for loop and use "freeone" function to determine whether the restaurent has "buy one get one free" or not.
+#If it has, then store and print it out as the result.
+#建立for迴圈，利用freeone函數判斷餐廳是否有買一送一餐點，有的話就儲存後印出
+for restaurant in restaurants:
+
+    if freeone(restaurant['tags']) == 'True':
+        if freeproduct(restaurant['code']) != {}:
+            result_list.append(restaurant['name'])
+            result_list.append(str(freeproduct(restaurant['code'])))
+            result_list.append(restaurant['web_path'])
+            
+result_text = '\n'.join(result_list)
+print(result_text)
+            
